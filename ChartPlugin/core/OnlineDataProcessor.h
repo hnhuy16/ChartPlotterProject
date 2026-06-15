@@ -7,7 +7,7 @@
 class OnlineDataProcessor : public IDataProcessor {
 public:
     // Giới hạn số lượng điểm giữ lại trong RAM (tránh tràn bộ nhớ)
-    explicit OnlineDataProcessor(size_t maxWindowSize = 10000);
+    explicit OnlineDataProcessor(size_t maxWindowSize = 200);
     ~OnlineDataProcessor() override = default;
 
     void loadData(const std::vector<QPointF>& rawData) override;

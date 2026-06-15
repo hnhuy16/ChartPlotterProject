@@ -144,6 +144,14 @@ Item {
                 return;
             }
 
+            const isOnlineMode = root.backend && root.backend.onlineMode && root.chartType !== "Pie";
+            if (isOnlineMode) {
+                const onlineWindowSpan = 199;
+                const latestX = maxX;
+                minX = Math.max(0, latestX - onlineWindowSpan);
+                maxX = minX + onlineWindowSpan;
+            }
+
             if (minX === maxX) {
                 minX -= 1;
                 maxX += 1;

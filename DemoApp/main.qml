@@ -233,6 +233,17 @@ Window {
             }
 
             Button {
+                text: qsTr("Start Online")
+                onClicked: chartBackend.setOnlineMode()
+            }
+
+            Button {
+                text: qsTr("Stop Online")
+                enabled: chartBackend.onlineMode
+                onClicked: chartBackend.setOfflineMode()
+            }
+
+            Button {
                 text: qsTr("Clear")
                 onClicked: chartBackend.clearData()
             }

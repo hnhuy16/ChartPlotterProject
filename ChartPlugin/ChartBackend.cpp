@@ -5,28 +5,50 @@
 
 #include <QtMath>
 
-ChartBackend::ChartBackend(QObject *parent) : QObject(parent) {}
+namespace {
+constexpr int RealtimeIntervalMs = 50;
+constexpr size_t RealtimeWindowSize = 200;
+}
+
+ChartBackend::ChartBackend(QObject *parent) : QObject(parent)
+{
+    m_realtimeTimer.setInterval(RealtimeIntervalMs);
+    connect(&m_realtimeTimer, &QTimer::timeout, this, &ChartBackend::appendRealtimePoint);
+}
 
 QList<QPointF> ChartBackend::chartData() const
 {
     return m_chartData;
 }
 
+bool ChartBackend::onlineMode() const
+{
+    return m_onlineMode;
+}
+
 void ChartBackend::setOfflineMode()
 {
+    m_realtimeTimer.stop();
+    setOnlineModeState(false);
     setProcessor(std::make_unique<OfflineDataProcessor>());
 }
 
 void ChartBackend::setOnlineMode()
 {
-    setProcessor(std::make_unique<OnlineDataProcessor>());
+    m_realtimeTimer.stop();
+    m_rawData.clear();
+    m_chartData.clear();
+    m_onlineX = 0.0;
+    m_processor = std::make_unique<OnlineDataProcessor>(RealtimeWindowSize);
+    setOnlineModeState(true);
+
+    emit chartDataChanged();
+    m_realtimeTimer.start();
 }
 
 void ChartBackend::generateDummyData()
 {
-    if (!m_processor) {
-        setOfflineMode();
-    }
+    setOfflineMode();
 
     std::vector<QPointF> dummyData;
     dummyData.reserve(2000);
@@ -49,6 +71,8 @@ void ChartBackend::generateDummyData()
 
 void ChartBackend::clearData()
 {
+    m_realtimeTimer.stop();
+    setOnlineModeState(false);
     m_rawData.clear();
     m_chartData.clear();
 
@@ -57,6 +81,23 @@ void ChartBackend::clearData()
     }
 
     emit chartDataChanged();
+}
+
+void ChartBackend::appendRealtimePoint()
+{
+    auto *onlineProcessor = dynamic_cast<OnlineDataProcessor *>(m_processor.get());
+    if (!onlineProcessor) {
+        m_realtimeTimer.stop();
+        setOnlineModeState(false);
+        return;
+    }
+
+    const double x = m_onlineX++;
+    const double wave = qSin(x * 0.15) * 40.0;
+    const double detail = qSin(x * 0.043) * 10.0;
+    onlineProcessor->appendPoint(QPointF(x, wave + detail));
+
+    updateChartDataFromProcessor();
 }
 
 void ChartBackend::setProcessor(std::unique_ptr<IDataProcessor> processor)
@@ -74,8 +115,29 @@ void ChartBackend::refreshChartData()
     }
 
     m_processor->loadData(m_rawData);
+    updateChartDataFromProcessor();
+}
+
+void ChartBackend::updateChartDataFromProcessor()
+{
+    if (!m_processor) {
+        m_chartData.clear();
+        emit chartDataChanged();
+        return;
+    }
+
     const std::vector<QPointF> processedData = m_processor->getProcessedData(m_targetPixelWidth);
     m_chartData = QList<QPointF>(processedData.begin(), processedData.end());
 
     emit chartDataChanged();
+}
+
+void ChartBackend::setOnlineModeState(bool onlineMode)
+{
+    if (m_onlineMode == onlineMode) {
+        return;
+    }
+
+    m_onlineMode = onlineMode;
+    emit onlineModeChanged();
 }
