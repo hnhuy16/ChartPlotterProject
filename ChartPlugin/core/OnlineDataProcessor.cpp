@@ -1,35 +1,27 @@
 #include "OnlineDataProcessor.h"
+
 #include "LttbAlgorithm.h"
+
 #include <limits>
 
-// Khởi tạo giới hạn số điểm tối đa trên màn hình
-OnlineDataProcessor::OnlineDataProcessor(size_t maxWindowSize)
-    : m_maxWindowSize(maxWindowSize) {}
-
-void OnlineDataProcessor::loadData(const std::vector<QPointF>& rawData) {
-    clear();
-    // Nạp lần lượt từng điểm vào hàng đợi
-    for (const auto& pt : rawData) {
-        appendPoint(pt);
-    }
+void OnlineDataProcessor::loadData(const std::vector<QPointF>& rawData)
+{
+    m_data = rawData;
 }
 
-void OnlineDataProcessor::appendPoint(const QPointF& point) {
-    m_dataQueue.push_back(point);
-
-    // Nếu số lượng điểm vượt quá khung cửa sổ (Window Size), xóa điểm cũ nhất ở đầu
-    if (m_dataQueue.size() > m_maxWindowSize) {
-        m_dataQueue.pop_front();
-    }
+void OnlineDataProcessor::appendPoint(const QPointF& point)
+{
+    m_data.push_back(point);
 }
 
-std::vector<QPointF> OnlineDataProcessor::getProcessedData(int pixelWidth) {
-    const std::vector<QPointF> data(m_dataQueue.begin(), m_dataQueue.end());
-    return LttbAlgorithm::downsample(data, pixelWidth);
+std::vector<QPointF> OnlineDataProcessor::getProcessedData(int pixelWidth)
+{
+    return LttbAlgorithm::downsample(m_data, pixelWidth);
 }
 
-ChartBounds OnlineDataProcessor::getBounds() const {
-    if (m_dataQueue.empty()) {
+ChartBounds OnlineDataProcessor::getBounds() const
+{
+    if (m_data.empty()) {
         return {0.0, 0.0, 0.0, 0.0};
     }
 
@@ -38,8 +30,7 @@ ChartBounds OnlineDataProcessor::getBounds() const {
     double minY = std::numeric_limits<double>::max();
     double maxY = std::numeric_limits<double>::lowest();
 
-    // Tính Min/Max dựa trên các điểm ĐANG CÓ trong hàng đợi (khung hình hiện tại)
-    for (const auto& point : m_dataQueue) {
+    for (const auto& point : m_data) {
         if (point.x() < minX) minX = point.x();
         if (point.x() > maxX) maxX = point.x();
         if (point.y() < minY) minY = point.y();
@@ -49,6 +40,7 @@ ChartBounds OnlineDataProcessor::getBounds() const {
     return {minX, maxX, minY, maxY};
 }
 
-void OnlineDataProcessor::clear() {
-    m_dataQueue.clear();
+void OnlineDataProcessor::clear()
+{
+    m_data.clear();
 }

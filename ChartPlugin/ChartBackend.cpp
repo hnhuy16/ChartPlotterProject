@@ -7,7 +7,7 @@
 
 namespace {
 constexpr int RealtimeIntervalMs = 50;
-constexpr size_t RealtimeWindowSize = 200;
+constexpr double InitialRealtimeViewportWidth = 199.0;
 }
 
 ChartBackend::ChartBackend(QObject *parent) : QObject(parent)
@@ -26,6 +26,16 @@ bool ChartBackend::onlineMode() const
     return m_onlineMode;
 }
 
+double ChartBackend::minX() const
+{
+    return m_minX;
+}
+
+double ChartBackend::maxX() const
+{
+    return m_maxX;
+}
+
 void ChartBackend::setOfflineMode()
 {
     m_realtimeTimer.stop();
@@ -39,7 +49,8 @@ void ChartBackend::setOnlineMode()
     m_rawData.clear();
     m_chartData.clear();
     m_onlineX = 0.0;
-    m_processor = std::make_unique<OnlineDataProcessor>(RealtimeWindowSize);
+    setViewport(0.0, InitialRealtimeViewportWidth);
+    m_processor = std::make_unique<OnlineDataProcessor>();
     setOnlineModeState(true);
 
     emit chartDataChanged();
@@ -97,6 +108,11 @@ void ChartBackend::appendRealtimePoint()
     const double detail = qSin(x * 0.043) * 10.0;
     onlineProcessor->appendPoint(QPointF(x, wave + detail));
 
+    const double viewportWidth = m_maxX - m_minX;
+    const double maxX = x;
+    const double minX = maxX - viewportWidth;
+    setViewport(minX, maxX);
+
     updateChartDataFromProcessor();
 }
 
@@ -140,4 +156,15 @@ void ChartBackend::setOnlineModeState(bool onlineMode)
 
     m_onlineMode = onlineMode;
     emit onlineModeChanged();
+}
+
+void ChartBackend::setViewport(double minX, double maxX)
+{
+    if (qFuzzyCompare(m_minX, minX) && qFuzzyCompare(m_maxX, maxX)) {
+        return;
+    }
+
+    m_minX = minX;
+    m_maxX = maxX;
+    emit viewportChanged();
 }

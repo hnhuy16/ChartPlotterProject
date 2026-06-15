@@ -146,10 +146,12 @@ Item {
 
             const isOnlineMode = root.backend && root.backend.onlineMode && root.chartType !== "Pie";
             if (isOnlineMode) {
-                const onlineWindowSpan = 199;
-                const latestX = maxX;
-                minX = Math.max(0, latestX - onlineWindowSpan);
-                maxX = minX + onlineWindowSpan;
+                const viewportMinX = root.backend.minX;
+                const viewportMaxX = root.backend.maxX;
+                if (Number.isFinite(viewportMinX) && Number.isFinite(viewportMaxX) && viewportMinX !== viewportMaxX) {
+                    minX = viewportMinX;
+                    maxX = viewportMaxX;
+                }
             }
 
             if (minX === maxX) {
@@ -360,6 +362,10 @@ Item {
         target: root.backend
 
         function onChartDataChanged() {
+            chartCanvas.requestPaint();
+        }
+
+        function onViewportChanged() {
             chartCanvas.requestPaint();
         }
     }

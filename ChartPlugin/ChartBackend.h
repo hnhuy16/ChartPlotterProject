@@ -18,12 +18,16 @@ class ChartBackend : public QObject
     QML_ELEMENT
     Q_PROPERTY(QList<QPointF> chartData READ chartData NOTIFY chartDataChanged)
     Q_PROPERTY(bool onlineMode READ onlineMode NOTIFY onlineModeChanged)
+    Q_PROPERTY(double minX READ minX NOTIFY viewportChanged)
+    Q_PROPERTY(double maxX READ maxX NOTIFY viewportChanged)
 
 public:
     explicit ChartBackend(QObject *parent = nullptr);
 
     QList<QPointF> chartData() const;
     bool onlineMode() const;
+    double minX() const;
+    double maxX() const;
 
     Q_INVOKABLE void setOfflineMode();
     Q_INVOKABLE void setOnlineMode();
@@ -33,6 +37,7 @@ public:
 signals:
     void chartDataChanged();
     void onlineModeChanged();
+    void viewportChanged();
 
 private slots:
     void appendRealtimePoint();
@@ -42,6 +47,7 @@ private:
     void refreshChartData();
     void updateChartDataFromProcessor();
     void setOnlineModeState(bool onlineMode);
+    void setViewport(double minX, double maxX);
 
     std::unique_ptr<IDataProcessor> m_processor;
     std::vector<QPointF> m_rawData;
@@ -50,6 +56,8 @@ private:
     int m_targetPixelWidth = 800;
     bool m_onlineMode = false;
     double m_onlineX = 0.0;
+    double m_minX = 0.0;
+    double m_maxX = 199.0;
 };
 
 #endif // CHARTBACKEND_H
