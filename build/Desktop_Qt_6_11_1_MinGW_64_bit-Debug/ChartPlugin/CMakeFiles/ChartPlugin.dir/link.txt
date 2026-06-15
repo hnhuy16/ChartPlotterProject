@@ -1,0 +1,2 @@
+C:\Qt\Tools\mingw1310_64\bin\ar.exe qc libChartPlugin.a CMakeFiles/ChartPlugin.dir/ChartPlugin_autogen/mocs_compilation.cpp.obj CMakeFiles/ChartPlugin.dir/chartplugin_qmltyperegistrations.cpp.obj CMakeFiles/ChartPlugin.dir/.qt/rcc/qrc_qmake_ChartPlotter.cpp.obj CMakeFiles/ChartPlugin.dir/ChartPlugin.cpp.obj
+C:\Qt\Tools\mingw1310_64\bin\ranlib.exe libChartPlugin.a

@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/DemoApp/">
+    <file alias="main.qml">D:/ChartPlotterProject/DemoApp/main.qml</file>
+  </qresource>
+</RCC>
+
