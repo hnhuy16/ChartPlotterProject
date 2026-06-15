@@ -5,6 +5,10 @@ Item {
 
     property var backend: null
     property var chartData: []
+    property string chartType: "Line"
+    property color chartColor: "blue"
+    property string lineStyle: "Solid"
+    property alias canvas: chartCanvas
     property real offsetX: 0
     property real offsetY: 0
     property real scaleX: 1
@@ -14,12 +18,12 @@ Item {
 
     function zoomX(factor) {
         scaleX = Math.max(0.1, Math.min(50, scaleX * factor));
-        canvas.requestPaint();
+        chartCanvas.requestPaint();
     }
 
     function zoomY(factor) {
         scaleY = Math.max(0.1, Math.min(50, scaleY * factor));
-        canvas.requestPaint();
+        chartCanvas.requestPaint();
     }
 
     function resetView() {
@@ -27,11 +31,11 @@ Item {
         offsetY = 0;
         scaleX = 1.0;
         scaleY = 1.0;
-        canvas.requestPaint();
+        chartCanvas.requestPaint();
     }
 
     Canvas {
-        id: canvas
+        id: chartCanvas
         anchors.fill: parent
         antialiasing: true
 
@@ -61,6 +65,7 @@ Item {
             const plotWidth = plotRight - plotLeft;
             const plotHeight = plotBottom - plotTop;
             const data = root.backend ? root.backend.chartData : (root.chartData || []);
+            const selectedChartColor = root.chartColor.toString();
 
             function transformedX(normalizedValue) {
                 return plotLeft + root.offsetX + normalizedValue * plotWidth * root.scaleX;
@@ -70,39 +75,41 @@ Item {
                 return plotBottom + root.offsetY - normalizedValue * plotHeight * root.scaleY;
             }
 
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(plotLeft, plotTop, plotWidth, plotHeight);
-            ctx.clip();
-
-            ctx.strokeStyle = "#e2e8f0";
-            ctx.lineWidth = 1;
-
-            const gridLines = 5;
-            for (let i = 0; i <= gridLines; ++i) {
-                const normalized = i / gridLines;
-                const x = transformedX(normalized);
+            if (root.chartType !== "Pie") {
+                ctx.save();
                 ctx.beginPath();
-                ctx.moveTo(x, plotTop);
-                ctx.lineTo(x, plotBottom);
-                ctx.stroke();
+                ctx.rect(plotLeft, plotTop, plotWidth, plotHeight);
+                ctx.clip();
 
-                const y = transformedY(1 - normalized);
+                ctx.strokeStyle = "#e2e8f0";
+                ctx.lineWidth = 1;
+
+                const gridLines = 5;
+                for (let i = 0; i <= gridLines; ++i) {
+                    const normalized = i / gridLines;
+                    const x = transformedX(normalized);
+                    ctx.beginPath();
+                    ctx.moveTo(x, plotTop);
+                    ctx.lineTo(x, plotBottom);
+                    ctx.stroke();
+
+                    const y = transformedY(1 - normalized);
+                    ctx.beginPath();
+                    ctx.moveTo(plotLeft, y);
+                    ctx.lineTo(plotRight, y);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+
+                ctx.strokeStyle = "#334155";
+                ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.moveTo(plotLeft, y);
-                ctx.lineTo(plotRight, y);
+                ctx.moveTo(plotLeft, plotTop);
+                ctx.lineTo(plotLeft, plotBottom);
+                ctx.lineTo(plotRight, plotBottom);
                 ctx.stroke();
             }
-
-            ctx.restore();
-
-            ctx.strokeStyle = "#334155";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(plotLeft, plotTop);
-            ctx.lineTo(plotLeft, plotBottom);
-            ctx.lineTo(plotRight, plotBottom);
-            ctx.stroke();
 
             if (data.length === 0) {
                 ctx.fillStyle = "#64748b";
@@ -151,6 +158,11 @@ Item {
                 return transformedX((value - minX) / (maxX - minX));
             }
 
+            if (root.chartType === "Bar") {
+                minY = Math.min(minY, 0);
+                maxY = Math.max(maxY, 0);
+            }
+
             function mapY(value) {
                 return transformedY((value - minY) / (maxY - minY));
             }
@@ -159,50 +171,117 @@ Item {
             ctx.beginPath();
             ctx.rect(plotLeft, plotTop, plotWidth, plotHeight);
             ctx.clip();
+            ctx.strokeStyle = selectedChartColor;
+            ctx.fillStyle = selectedChartColor;
 
-            ctx.strokeStyle = "#2563eb";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
+            if (root.chartType === "Bar") {
+                const baselineY = mapY(0);
+                const barWidth = Math.max(1, Math.min(48, plotWidth / Math.max(data.length, 1) * root.scaleX * 0.75));
 
-            let started = false;
-            for (let k = 0; k < data.length; ++k) {
-                const item = data[k];
-                const xValue = item.x;
-                const yValue = item.y;
+                for (let k = 0; k < data.length; ++k) {
+                    const item = data[k];
+                    const xValue = item.x;
+                    const yValue = item.y;
 
-                if (!Number.isFinite(xValue) || !Number.isFinite(yValue)) {
-                    continue;
+                    if (!Number.isFinite(xValue) || !Number.isFinite(yValue)) {
+                        continue;
+                    }
+
+                    const canvasX = mapX(xValue);
+                    const canvasY = mapY(yValue);
+                    const barTop = Math.min(canvasY, baselineY);
+                    const barHeight = Math.abs(baselineY - canvasY);
+
+                    ctx.fillRect(canvasX - barWidth / 2, barTop, barWidth, Math.max(1, barHeight));
+                }
+            } else if (root.chartType === "Pie") {
+                const pieValues = [];
+                for (let k = 0; k < data.length && pieValues.length < 10; ++k) {
+                    const value = Math.abs(data[k].y);
+                    if (Number.isFinite(value) && value > 0) {
+                        pieValues.push(value);
+                    }
                 }
 
-                const canvasX = mapX(xValue);
-                const canvasY = mapY(yValue);
+                const total = pieValues.reduce(function(sum, value) { return sum + value; }, 0);
+                if (total > 0) {
+                    const centerX = plotLeft + plotWidth / 2;
+                    const centerY = plotTop + plotHeight / 2;
+                    const radius = Math.max(8, Math.min(plotWidth, plotHeight) * 0.42);
+                    let startAngle = -Math.PI / 2;
+
+                    for (let l = 0; l < pieValues.length; ++l) {
+                        const sliceAngle = pieValues[l] / total * Math.PI * 2;
+                        const endAngle = startAngle + sliceAngle;
+
+                        ctx.beginPath();
+                        ctx.moveTo(centerX, centerY);
+                        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                        ctx.closePath();
+                        ctx.globalAlpha = 0.55 + (l % 4) * 0.12;
+                        ctx.fillStyle = selectedChartColor;
+                        ctx.fill();
+                        ctx.globalAlpha = 1.0;
+                        ctx.strokeStyle = "#f8fafc";
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+
+                        startAngle = endAngle;
+                    }
+                }
+            } else {
+                if (root.lineStyle === "Dashed") {
+                    ctx.setLineDash([10, 5]);
+                } else if (root.lineStyle === "Dotted") {
+                    ctx.setLineDash([2, 4]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+
+                let started = false;
+                for (let k = 0; k < data.length; ++k) {
+                    const item = data[k];
+                    const xValue = item.x;
+                    const yValue = item.y;
+
+                    if (!Number.isFinite(xValue) || !Number.isFinite(yValue)) {
+                        continue;
+                    }
+
+                    const canvasX = mapX(xValue);
+                    const canvasY = mapY(yValue);
+
+                    if (started) {
+                        ctx.lineTo(canvasX, canvasY);
+                    } else {
+                        ctx.moveTo(canvasX, canvasY);
+                        started = true;
+                    }
+                }
 
                 if (started) {
-                    ctx.lineTo(canvasX, canvasY);
-                } else {
-                    ctx.moveTo(canvasX, canvasY);
-                    started = true;
-                }
-            }
-
-            if (started) {
-                ctx.stroke();
-            }
-
-            ctx.fillStyle = "#1d4ed8";
-            const pointRadius = data.length > 500 ? 1.5 : 2.5;
-            for (let l = 0; l < data.length; ++l) {
-                const dot = data[l];
-                const dotX = dot.x;
-                const dotY = dot.y;
-
-                if (!Number.isFinite(dotX) || !Number.isFinite(dotY)) {
-                    continue;
+                    ctx.stroke();
                 }
 
-                ctx.beginPath();
-                ctx.arc(mapX(dotX), mapY(dotY), pointRadius, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.setLineDash([]);
+                ctx.fillStyle = selectedChartColor;
+                const pointRadius = data.length > 500 ? 1.5 : 2.5;
+                for (let l = 0; l < data.length; ++l) {
+                    const dot = data[l];
+                    const dotX = dot.x;
+                    const dotY = dot.y;
+
+                    if (!Number.isFinite(dotX) || !Number.isFinite(dotY)) {
+                        continue;
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(mapX(dotX), mapY(dotY), pointRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
 
             ctx.restore();
@@ -229,8 +308,8 @@ Item {
                     root.scaleY = Math.max(0.1, Math.min(50, root.scaleY * zoomFactor));
                 }
 
-                const plotLeft = canvas.leftPadding;
-                const plotBottom = Math.max(canvas.topPadding + 1, canvas.height - canvas.bottomPadding);
+                const plotLeft = chartCanvas.leftPadding;
+                const plotBottom = Math.max(chartCanvas.topPadding + 1, chartCanvas.height - chartCanvas.bottomPadding);
                 const dataX = (wheel.x - plotLeft - root.offsetX) / oldScaleX;
                 const dataY = (wheel.y - plotBottom - root.offsetY) / oldScaleY;
 
@@ -242,7 +321,7 @@ Item {
                     root.offsetY = wheel.y - plotBottom - dataY * root.scaleY;
                 }
 
-                canvas.requestPaint();
+                chartCanvas.requestPaint();
                 wheel.accepted = true;
             }
 
@@ -264,7 +343,7 @@ Item {
                 root.lastPanX = mouse.x;
                 root.lastPanY = mouse.y;
 
-                canvas.requestPaint();
+                chartCanvas.requestPaint();
             }
         }
     }
@@ -273,12 +352,15 @@ Item {
         target: root.backend
 
         function onChartDataChanged() {
-            canvas.requestPaint();
+            chartCanvas.requestPaint();
         }
     }
 
-    onChartDataChanged: canvas.requestPaint()
-    onWidthChanged: canvas.requestPaint()
-    onHeightChanged: canvas.requestPaint()
-    Component.onCompleted: canvas.requestPaint()
+    onChartDataChanged: chartCanvas.requestPaint()
+    onChartTypeChanged: chartCanvas.requestPaint()
+    onChartColorChanged: chartCanvas.requestPaint()
+    onLineStyleChanged: chartCanvas.requestPaint()
+    onWidthChanged: chartCanvas.requestPaint()
+    onHeightChanged: chartCanvas.requestPaint()
+    Component.onCompleted: chartCanvas.requestPaint()
 }
