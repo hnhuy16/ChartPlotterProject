@@ -12,6 +12,7 @@ qt_add_qml_module(DemoApp
     VERSION 1.0
     QML_FILES 
         main.qml
+        ChartView.qml
 )
 
 # Liên kết DemoApp với Qt và ChartPlugin
