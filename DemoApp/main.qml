@@ -21,9 +21,49 @@ Window {
         spacing: 12
 
         ChartView {
+            id: chartView
             Layout.fillWidth: true
             Layout.fillHeight: true
             backend: chartBackend
+        }
+
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
+            spacing: 8
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            Button {
+                text: qsTr("Zoom X+")
+                onClicked: chartView.zoomX(1.1)
+            }
+
+            Button {
+                text: qsTr("Zoom X-")
+                onClicked: chartView.zoomX(1 / 1.1)
+            }
+
+            Button {
+                text: qsTr("Zoom Y+")
+                onClicked: chartView.zoomY(1.1)
+            }
+
+            Button {
+                text: qsTr("Zoom Y-")
+                onClicked: chartView.zoomY(1 / 1.1)
+            }
+
+            Button {
+                text: qsTr("Reset")
+                onClicked: chartView.resetView()
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
         }
 
         RowLayout {

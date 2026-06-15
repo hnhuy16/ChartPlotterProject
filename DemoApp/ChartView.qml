@@ -5,6 +5,30 @@ Item {
 
     property var backend: null
     property var chartData: []
+    property real offsetX: 0
+    property real offsetY: 0
+    property real scaleX: 1
+    property real scaleY: 1
+    property real lastPanX: 0
+    property real lastPanY: 0
+
+    function zoomX(factor) {
+        scaleX = Math.max(0.1, Math.min(50, scaleX * factor));
+        canvas.requestPaint();
+    }
+
+    function zoomY(factor) {
+        scaleY = Math.max(0.1, Math.min(50, scaleY * factor));
+        canvas.requestPaint();
+    }
+
+    function resetView() {
+        offsetX = 0;
+        offsetY = 0;
+        scaleX = 1.0;
+        scaleY = 1.0;
+        canvas.requestPaint();
+    }
 
     Canvas {
         id: canvas
@@ -38,23 +62,39 @@ Item {
             const plotHeight = plotBottom - plotTop;
             const data = root.backend ? root.backend.chartData : (root.chartData || []);
 
+            function transformedX(normalizedValue) {
+                return plotLeft + root.offsetX + normalizedValue * plotWidth * root.scaleX;
+            }
+
+            function transformedY(normalizedValue) {
+                return plotBottom + root.offsetY - normalizedValue * plotHeight * root.scaleY;
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(plotLeft, plotTop, plotWidth, plotHeight);
+            ctx.clip();
+
             ctx.strokeStyle = "#e2e8f0";
             ctx.lineWidth = 1;
 
             const gridLines = 5;
             for (let i = 0; i <= gridLines; ++i) {
-                const x = plotLeft + (plotWidth * i / gridLines);
+                const normalized = i / gridLines;
+                const x = transformedX(normalized);
                 ctx.beginPath();
                 ctx.moveTo(x, plotTop);
                 ctx.lineTo(x, plotBottom);
                 ctx.stroke();
 
-                const y = plotTop + (plotHeight * i / gridLines);
+                const y = transformedY(1 - normalized);
                 ctx.beginPath();
                 ctx.moveTo(plotLeft, y);
                 ctx.lineTo(plotRight, y);
                 ctx.stroke();
             }
+
+            ctx.restore();
 
             ctx.strokeStyle = "#334155";
             ctx.lineWidth = 2;
@@ -108,12 +148,17 @@ Item {
             }
 
             function mapX(value) {
-                return plotLeft + ((value - minX) / (maxX - minX)) * plotWidth;
+                return transformedX((value - minX) / (maxX - minX));
             }
 
             function mapY(value) {
-                return plotBottom - ((value - minY) / (maxY - minY)) * plotHeight;
+                return transformedY((value - minY) / (maxY - minY));
             }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(plotLeft, plotTop, plotWidth, plotHeight);
+            ctx.clip();
 
             ctx.strokeStyle = "#2563eb";
             ctx.lineWidth = 2;
@@ -158,6 +203,68 @@ Item {
                 ctx.beginPath();
                 ctx.arc(mapX(dotX), mapY(dotY), pointRadius, 0, Math.PI * 2);
                 ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            hoverEnabled: true
+
+            onWheel: function(wheel) {
+                const zoomFactor = wheel.angleDelta.y > 0 ? 1.1 : 1 / 1.1;
+                const oldScaleX = root.scaleX;
+                const oldScaleY = root.scaleY;
+                const zoomX = wheel.modifiers & Qt.ControlModifier;
+                const zoomY = wheel.modifiers & Qt.ShiftModifier;
+                const zoomBoth = !zoomX && !zoomY;
+
+                if (zoomX || zoomBoth) {
+                    root.scaleX = Math.max(0.1, Math.min(50, root.scaleX * zoomFactor));
+                }
+
+                if (zoomY || zoomBoth) {
+                    root.scaleY = Math.max(0.1, Math.min(50, root.scaleY * zoomFactor));
+                }
+
+                const plotLeft = canvas.leftPadding;
+                const plotBottom = Math.max(canvas.topPadding + 1, canvas.height - canvas.bottomPadding);
+                const dataX = (wheel.x - plotLeft - root.offsetX) / oldScaleX;
+                const dataY = (wheel.y - plotBottom - root.offsetY) / oldScaleY;
+
+                if (zoomX || zoomBoth) {
+                    root.offsetX = wheel.x - plotLeft - dataX * root.scaleX;
+                }
+
+                if (zoomY || zoomBoth) {
+                    root.offsetY = wheel.y - plotBottom - dataY * root.scaleY;
+                }
+
+                canvas.requestPaint();
+                wheel.accepted = true;
+            }
+
+            onPressed: function(mouse) {
+                root.lastPanX = mouse.x;
+                root.lastPanY = mouse.y;
+            }
+
+            onPositionChanged: function(mouse) {
+                if (!(mouse.buttons & Qt.LeftButton)) {
+                    return;
+                }
+
+                const deltaX = mouse.x - root.lastPanX;
+                const deltaY = mouse.y - root.lastPanY;
+
+                root.offsetX += deltaX;
+                root.offsetY += deltaY;
+                root.lastPanX = mouse.x;
+                root.lastPanY = mouse.y;
+
+                canvas.requestPaint();
             }
         }
     }
