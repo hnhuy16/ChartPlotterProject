@@ -21,5 +21,6 @@ target_link_libraries(DemoApp PRIVATE
     Qt6::Gui
     Qt6::Qml
     Qt6::Quick
+    ChartPluginplugin
     ChartPlugin # Link trực tiếp với target của Plugin
 )

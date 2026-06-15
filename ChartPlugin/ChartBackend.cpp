@@ -5,11 +5,7 @@
 
 #include <QtMath>
 
-ChartBackend::ChartBackend(QObject *parent)
-    : QObject(parent)
-{
-    setProcessor(std::make_unique<OfflineDataProcessor>());
-}
+ChartBackend::ChartBackend(QObject *parent) : QObject(parent) {}
 
 QList<QPointF> ChartBackend::chartData() const
 {
@@ -28,14 +24,24 @@ void ChartBackend::setOnlineMode()
 
 void ChartBackend::generateDummyData()
 {
-    m_rawData.clear();
-    m_rawData.reserve(2000);
+    if (!m_processor) {
+        setOfflineMode();
+    }
+
+    std::vector<QPointF> dummyData;
+    dummyData.reserve(2000);
 
     for (int i = 0; i < 2000; ++i) {
         const double x = static_cast<double>(i);
         const double wave = qSin(x * 0.025) * 40.0;
         const double detail = qSin(x * 0.17) * 8.0;
-        m_rawData.emplace_back(x, wave + detail);
+        dummyData.emplace_back(x, wave + detail);
+    }
+
+    m_rawData = std::move(dummyData);
+
+    if (m_processor) {
+        m_processor->loadData(m_rawData);
     }
 
     refreshChartData();

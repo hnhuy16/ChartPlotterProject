@@ -12,7 +12,7 @@ Window {
     title: qsTr("Chart Plotter Demo")
 
     ChartBackend {
-        id: backend
+        id: chartBackend
     }
 
     ColumnLayout {
@@ -23,7 +23,7 @@ Window {
         ChartView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            chartData: backend.chartData
+            backend: chartBackend
         }
 
         RowLayout {
@@ -32,12 +32,12 @@ Window {
 
             Button {
                 text: qsTr("Generate Data")
-                onClicked: backend.generateDummyData()
+                onClicked: chartBackend.generateDummyData()
             }
 
             Button {
                 text: qsTr("Clear")
-                onClicked: backend.clearData()
+                onClicked: chartBackend.clearData()
             }
         }
     }

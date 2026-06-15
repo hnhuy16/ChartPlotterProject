@@ -3,6 +3,7 @@ import QtQuick
 Item {
     id: root
 
+    property var backend: null
     property var chartData: []
 
     Canvas {
@@ -35,7 +36,7 @@ Item {
             const plotBottom = Math.max(plotTop + 1, h - bottomPadding);
             const plotWidth = plotRight - plotLeft;
             const plotHeight = plotBottom - plotTop;
-            const data = root.chartData || [];
+            const data = root.backend ? root.backend.chartData : (root.chartData || []);
 
             ctx.strokeStyle = "#e2e8f0";
             ctx.lineWidth = 1;
@@ -158,6 +159,14 @@ Item {
                 ctx.arc(mapX(dotX), mapY(dotY), pointRadius, 0, Math.PI * 2);
                 ctx.fill();
             }
+        }
+    }
+
+    Connections {
+        target: root.backend
+
+        function onChartDataChanged() {
+            canvas.requestPaint();
         }
     }
 
