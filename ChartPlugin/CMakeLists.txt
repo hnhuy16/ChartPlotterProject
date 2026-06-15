@@ -11,8 +11,12 @@ qt_add_qml_module(ChartPlugin
     SOURCES
         ChartPlugin.cpp
         SOURCES core/IDataProcessor.h
+        SOURCES core/LttbAlgorithm.h
         SOURCES core/OfflineDataProcessor.h
         SOURCES core/OnlineDataProcessor.h
+        SOURCES core/LttbAlgorithm.cpp
+        SOURCES core/OfflineDataProcessor.cpp
+        SOURCES core/OnlineDataProcessor.cpp
 )
 
 # 3. Khai báo các thư viện Qt mà Plugin sử dụng
