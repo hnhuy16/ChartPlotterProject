@@ -1,5 +1,0 @@
-module DemoApp
-typeinfo DemoApp.qmltypes
-prefer :/qt/qml/DemoApp/
-depends QtQuick
-

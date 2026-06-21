@@ -1,6 +1,0 @@
-[D:<SLASH>ChartPlotterProject<SLASH>ChartPlugin]
-importPaths="D:/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/ChartPlugin;D:/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug;C:/Qt/6.11.1/mingw_64/qml"
-resourceFiles="D:/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/ChartPlugin/.qt/rcc/qmake_ChartPlotter.qrc"
-[D:<SLASH>ChartPlotterProject<SLASH>DemoApp]
-importPaths="D:/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp;D:/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/DemoApp;D:/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug;C:/Qt/6.11.1/mingw_64/qml"
-resourceFiles="D:/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/rcc/qmake_DemoApp.qrc;D:/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/rcc/DemoApp_raw_qml_0.qrc"
