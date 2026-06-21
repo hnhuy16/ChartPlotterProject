@@ -1,8 +1,0 @@
-module ChartPlotter
-linktarget ChartPluginplugin
-optional plugin ChartPluginplugin
-classname ChartPlotterPlugin
-typeinfo ChartPlugin.qmltypes
-prefer :/qt/qml/ChartPlotter/
-depends QtQuick
-

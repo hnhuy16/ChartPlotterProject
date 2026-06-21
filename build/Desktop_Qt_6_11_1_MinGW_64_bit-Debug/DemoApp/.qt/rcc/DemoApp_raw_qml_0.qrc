@@ -1,7 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/DemoApp/">
-    <file alias="main.qml">C:/Huy/ChartPlotterProject/DemoApp/main.qml</file>
-    <file alias="ChartView.qml">C:/Huy/ChartPlotterProject/DemoApp/ChartView.qml</file>
-  </qresource>
-</RCC>
-

@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/ChartPlotter">
-    <file alias="qmldir">C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/ChartPlugin/qmldir</file>
-  </qresource>
-</RCC>
-

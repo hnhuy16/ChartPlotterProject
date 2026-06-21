@@ -1,9 +1,0 @@
-DemoApp_autogen/timestamp: \
-	C:/Huy/ChartPlotterProject/DemoApp/CMakeLists.txt \
-	C:/Huy/ChartPlotterProject/DemoApp/main.cpp \
-	C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/qml_imports/DemoApp_conf.cmake \
-	C:/Qt/6.11.1/mingw_64/lib/cmake/Qt6/windows/app.exe.manifest.in \
-	C:/Qt/6.11.1/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfigureFileTemplate.in \
-	C:/Qt/6.11.1/mingw_64/lib/cmake/Qt6Qml/Qt6QmlModuleDirMappingTemplate.qrc.in \
-	C:/Qt/6.11.1/mingw_64/lib/cmake/Qt6Qml/Qt6qmldirTemplate.cmake.in \
-	C:/Qt/Tools/CMake_64/bin/cmake.exe

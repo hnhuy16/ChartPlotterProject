@@ -1,7 +1,0 @@
-set(__QT_DEPLOY_TARGET_ChartPlugin_FILE C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/ChartPlugin/libChartPlugin.a)
-set(__QT_DEPLOY_TARGET_ChartPlugin_TYPE STATIC_LIBRARY)
-set(__QT_DEPLOY_TARGET_ChartPluginplugin_FILE C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/ChartPlugin/libChartPluginplugin.a)
-set(__QT_DEPLOY_TARGET_ChartPluginplugin_TYPE STATIC_LIBRARY)
-set(__QT_DEPLOY_TARGET_DemoApp_FILE C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/DemoApp.exe)
-set(__QT_DEPLOY_TARGET_DemoApp_TYPE EXECUTABLE)
-set(__QT_DEPLOY_TARGET_DemoApp_RUNTIME_DLLS C:/Qt/6.11.1/mingw_64/bin/Qt6Quick.dll;C:/Qt/6.11.1/mingw_64/bin/Qt6OpenGL.dll;C:/Qt/6.11.1/mingw_64/bin/Qt6Gui.dll;C:/Qt/6.11.1/mingw_64/bin/Qt6QmlMeta.dll;C:/Qt/6.11.1/mingw_64/bin/Qt6QmlModels.dll;C:/Qt/6.11.1/mingw_64/bin/Qt6QmlWorkerScript.dll;C:/Qt/6.11.1/mingw_64/bin/Qt6Qml.dll;C:/Qt/6.11.1/mingw_64/bin/Qt6Network.dll;C:/Qt/6.11.1/mingw_64/bin/Qt6Core.dll)
