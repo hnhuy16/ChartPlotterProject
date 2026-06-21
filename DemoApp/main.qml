@@ -67,6 +67,18 @@ Window {
             }
 
             Button {
+                text: qsTr("Crop")
+                checkable: true
+                checked: chartView.cropMode
+                highlighted: checked
+                enabled: chartView.chartType !== "Pie"
+                onToggled: chartView.cropMode = checked
+
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Drag a region to zoom")
+            }
+
+            Button {
                 text: qsTr("Reset")
                 onClicked: chartView.resetView()
             }

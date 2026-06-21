@@ -36,6 +36,36 @@ double ChartBackend::maxX() const
     return m_maxX;
 }
 
+double ChartBackend::minY() const
+{
+    return m_minY;
+}
+
+double ChartBackend::maxY() const
+{
+    return m_maxY;
+}
+
+void ChartBackend::setMinX(double minX)
+{
+    setViewport(minX, m_maxX, m_minY, m_maxY);
+}
+
+void ChartBackend::setMaxX(double maxX)
+{
+    setViewport(m_minX, maxX, m_minY, m_maxY);
+}
+
+void ChartBackend::setMinY(double minY)
+{
+    setViewport(m_minX, m_maxX, minY, m_maxY);
+}
+
+void ChartBackend::setMaxY(double maxY)
+{
+    setViewport(m_minX, m_maxX, m_minY, maxY);
+}
+
 void ChartBackend::setOfflineMode()
 {
     m_realtimeTimer.stop();
@@ -49,7 +79,7 @@ void ChartBackend::setOnlineMode()
     m_rawData.clear();
     m_chartData.clear();
     m_onlineX = 0.0;
-    setViewport(0.0, InitialRealtimeViewportWidth);
+    setXViewport(0.0, InitialRealtimeViewportWidth);
     m_processor = std::make_unique<OnlineDataProcessor>();
     setOnlineModeState(true);
 
@@ -72,6 +102,7 @@ void ChartBackend::generateDummyData()
     }
 
     m_rawData = std::move(dummyData);
+    setViewport(0.0, 1999.0, -48.0, 48.0);
 
     if (m_processor) {
         m_processor->loadData(m_rawData);
@@ -111,7 +142,7 @@ void ChartBackend::appendRealtimePoint()
     const double viewportWidth = m_maxX - m_minX;
     const double maxX = x;
     const double minX = maxX - viewportWidth;
-    setViewport(minX, maxX);
+    setXViewport(minX, maxX);
 
     updateChartDataFromProcessor();
 }
@@ -158,13 +189,25 @@ void ChartBackend::setOnlineModeState(bool onlineMode)
     emit onlineModeChanged();
 }
 
-void ChartBackend::setViewport(double minX, double maxX)
+void ChartBackend::setViewport(double minX, double maxX, double minY, double maxY)
 {
-    if (qFuzzyCompare(m_minX, minX) && qFuzzyCompare(m_maxX, maxX)) {
+    if (minX >= maxX || minY >= maxY) {
+        return;
+    }
+
+    if (qFuzzyCompare(m_minX, minX) && qFuzzyCompare(m_maxX, maxX)
+        && qFuzzyCompare(m_minY, minY) && qFuzzyCompare(m_maxY, maxY)) {
         return;
     }
 
     m_minX = minX;
     m_maxX = maxX;
+    m_minY = minY;
+    m_maxY = maxY;
     emit viewportChanged();
+}
+
+void ChartBackend::setXViewport(double minX, double maxX)
+{
+    setViewport(minX, maxX, m_minY, m_maxY);
 }

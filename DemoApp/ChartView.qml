@@ -15,6 +15,11 @@ Item {
     property real scaleY: 1
     property real lastPanX: 0
     property real lastPanY: 0
+    property bool cropMode: false
+    property rect selectionBox: Qt.rect(0, 0, 0, 0)
+    property bool cropSelecting: false
+    property real cropStartX: 0
+    property real cropStartY: 0
     property bool pointingVisible: false
     property real pointingMouseX: 0
     property real pointingMouseY: 0
@@ -27,6 +32,11 @@ Item {
     readonly property real pointingRadius: 14
 
     function updatePointing(mouseX, mouseY) {
+        if (cropMode) {
+            clearPointing();
+            return;
+        }
+
         pointingMouseX = mouseX;
         pointingMouseY = mouseY;
 
@@ -67,14 +77,20 @@ Item {
             return;
         }
 
-        const isOnlineMode = root.backend && root.backend.onlineMode;
-        if (isOnlineMode) {
+        if (root.backend) {
             const viewportMinX = root.backend.minX;
             const viewportMaxX = root.backend.maxX;
+            const viewportMinY = root.backend.minY;
+            const viewportMaxY = root.backend.maxY;
             if (Number.isFinite(viewportMinX) && Number.isFinite(viewportMaxX)
                     && viewportMinX !== viewportMaxX) {
                 minX = viewportMinX;
                 maxX = viewportMaxX;
+            }
+            if (Number.isFinite(viewportMinY) && Number.isFinite(viewportMaxY)
+                    && viewportMinY !== viewportMaxY) {
+                minY = viewportMinY;
+                maxY = viewportMaxY;
             }
         }
 
@@ -86,7 +102,7 @@ Item {
             minY -= 1;
             maxY += 1;
         }
-        if (root.chartType === "Bar") {
+        if (root.chartType === "Bar" && !root.backend) {
             minY = Math.min(minY, 0);
             maxY = Math.max(maxY, 0);
         }
@@ -183,6 +199,71 @@ Item {
         offsetY = 0;
         scaleX = 1.0;
         scaleY = 1.0;
+        chartCanvas.requestPaint();
+        refreshPointing();
+    }
+
+    function clampToPlotX(value) {
+        return Math.max(chartCanvas.leftPadding,
+                        Math.min(chartCanvas.width - chartCanvas.rightPadding, value));
+    }
+
+    function clampToPlotY(value) {
+        return Math.max(chartCanvas.topPadding,
+                        Math.min(chartCanvas.height - chartCanvas.bottomPadding, value));
+    }
+
+    function applyCrop() {
+        const selectionLeft = selectionBox.x;
+        const selectionTop = selectionBox.y;
+        const selectionWidth = selectionBox.width;
+        const selectionHeight = selectionBox.height;
+
+        cropSelecting = false;
+        if (selectionWidth < 8 || selectionHeight < 8) {
+            selectionBox = Qt.rect(0, 0, 0, 0);
+            cropMode = false;
+            chartCanvas.requestPaint();
+            return;
+        }
+
+        const plotLeft = chartCanvas.leftPadding;
+        const plotTop = chartCanvas.topPadding;
+        const plotRight = chartCanvas.width - chartCanvas.rightPadding;
+        const plotBottom = chartCanvas.height - chartCanvas.bottomPadding;
+        const plotWidth = plotRight - plotLeft;
+        const plotHeight = plotBottom - plotTop;
+        if (root.backend && Number.isFinite(root.backend.minX)
+                && Number.isFinite(root.backend.maxX)
+                && Number.isFinite(root.backend.minY)
+                && Number.isFinite(root.backend.maxY)) {
+            const currentMinX = root.backend.minX;
+            const currentMaxX = root.backend.maxX;
+            const currentMinY = root.backend.minY;
+            const currentMaxY = root.backend.maxY;
+            const visibleMinX = currentMinX
+                    + ((selectionLeft - plotLeft - offsetX) / (plotWidth * scaleX))
+                    * (currentMaxX - currentMinX);
+            const visibleMaxX = currentMinX
+                    + ((selectionLeft + selectionWidth - plotLeft - offsetX)
+                       / (plotWidth * scaleX)) * (currentMaxX - currentMinX);
+            const visibleMaxY = currentMinY
+                    + ((plotBottom + offsetY - selectionTop) / (plotHeight * scaleY))
+                    * (currentMaxY - currentMinY);
+            const visibleMinY = currentMinY
+                    + ((plotBottom + offsetY - selectionTop - selectionHeight)
+                       / (plotHeight * scaleY)) * (currentMaxY - currentMinY);
+
+            root.backend.setViewport(visibleMinX, visibleMaxX,
+                                     visibleMinY, visibleMaxY);
+            offsetX = 0;
+            offsetY = 0;
+            scaleX = 1;
+            scaleY = 1;
+        }
+
+        selectionBox = Qt.rect(0, 0, 0, 0);
+        cropMode = false;
         chartCanvas.requestPaint();
         refreshPointing();
     }
@@ -297,13 +378,18 @@ Item {
                 return;
             }
 
-            const isOnlineMode = root.backend && root.backend.onlineMode && root.chartType !== "Pie";
-            if (isOnlineMode) {
+            if (root.backend && root.chartType !== "Pie") {
                 const viewportMinX = root.backend.minX;
                 const viewportMaxX = root.backend.maxX;
+                const viewportMinY = root.backend.minY;
+                const viewportMaxY = root.backend.maxY;
                 if (Number.isFinite(viewportMinX) && Number.isFinite(viewportMaxX) && viewportMinX !== viewportMaxX) {
                     minX = viewportMinX;
                     maxX = viewportMaxX;
+                }
+                if (Number.isFinite(viewportMinY) && Number.isFinite(viewportMaxY) && viewportMinY !== viewportMaxY) {
+                    minY = viewportMinY;
+                    maxY = viewportMaxY;
                 }
             }
 
@@ -321,7 +407,7 @@ Item {
                 return transformedX((value - minX) / (maxX - minX));
             }
 
-            if (root.chartType === "Bar") {
+            if (root.chartType === "Bar" && !root.backend) {
                 minY = Math.min(minY, 0);
                 maxY = Math.max(maxY, 0);
             }
@@ -458,6 +544,17 @@ Item {
                 ctx.strokeStyle = selectedChartColor;
                 ctx.stroke();
             }
+
+            if (root.selectionBox.width > 0 && root.selectionBox.height > 0) {
+                ctx.fillStyle = "rgba(0, 150, 255, 0.3)";
+                ctx.fillRect(root.selectionBox.x, root.selectionBox.y,
+                             root.selectionBox.width, root.selectionBox.height);
+                ctx.strokeStyle = "#0096ff";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(root.selectionBox.x + 0.5, root.selectionBox.y + 0.5,
+                               Math.max(0, root.selectionBox.width - 1),
+                               Math.max(0, root.selectionBox.height - 1));
+            }
         }
 
         MouseArea {
@@ -465,6 +562,7 @@ Item {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
+            cursorShape: root.cropMode ? Qt.CrossCursor : Qt.ArrowCursor
 
             onWheel: function(wheel) {
                 const zoomFactor = wheel.angleDelta.y > 0 ? 1.1 : 1 / 1.1;
@@ -500,11 +598,54 @@ Item {
             }
 
             onPressed: function(mouse) {
+                let isCropping = root.cropMode
+                        || (mouse.modifiers & Qt.AltModifier);
+                if (isCropping && root.chartType !== "Pie") {
+                    const plotLeft = chartCanvas.leftPadding;
+                    const plotRight = chartCanvas.width - chartCanvas.rightPadding;
+                    const plotTop = chartCanvas.topPadding;
+                    const plotBottom = chartCanvas.height - chartCanvas.bottomPadding;
+                    if (mouse.x < plotLeft || mouse.x > plotRight
+                            || mouse.y < plotTop || mouse.y > plotBottom) {
+                        mouse.accepted = false;
+                        return;
+                    }
+
+                    const startX = root.clampToPlotX(mouse.x);
+                    const startY = root.clampToPlotY(mouse.y);
+                    root.cropStartX = startX;
+                    root.cropStartY = startY;
+                    root.selectionBox = Qt.rect(startX, startY, 0, 0);
+                    root.cropSelecting = true;
+                    root.clearPointing();
+                    chartCanvas.requestPaint();
+                    return;
+                }
+
                 root.lastPanX = mouse.x;
                 root.lastPanY = mouse.y;
             }
 
             onPositionChanged: function(mouse) {
+                let isCropping = root.cropMode
+                        || (mouse.modifiers & Qt.AltModifier);
+                if ((isCropping || root.cropSelecting) && root.cropSelecting) {
+                    const endX = root.clampToPlotX(mouse.x);
+                    const endY = root.clampToPlotY(mouse.y);
+                    const startX = root.cropStartX;
+                    const startY = root.cropStartY;
+                    root.selectionBox = Qt.rect(Math.min(startX, endX),
+                                                Math.min(startY, endY),
+                                                Math.abs(endX - startX),
+                                                Math.abs(endY - startY));
+                    chartCanvas.requestPaint();
+                    return;
+                }
+
+                if (isCropping) {
+                    return;
+                }
+
                 if (mouse.buttons & Qt.LeftButton) {
                     const deltaX = mouse.x - root.lastPanX;
                     const deltaY = mouse.y - root.lastPanY;
@@ -518,6 +659,27 @@ Item {
                 root.updatePointing(mouse.x, mouse.y);
             }
 
+            onReleased: function(mouse) {
+                let isCropping = root.cropMode
+                        || (mouse.modifiers & Qt.AltModifier);
+                if ((isCropping || root.cropSelecting) && root.cropSelecting) {
+                    const endX = root.clampToPlotX(mouse.x);
+                    const endY = root.clampToPlotY(mouse.y);
+                    const startX = root.cropStartX;
+                    const startY = root.cropStartY;
+                    root.selectionBox = Qt.rect(Math.min(startX, endX),
+                                                Math.min(startY, endY),
+                                                Math.abs(endX - startX),
+                                                Math.abs(endY - startY));
+                    root.applyCrop();
+                }
+            }
+
+            onCanceled: {
+                root.cropSelecting = false;
+                root.selectionBox = Qt.rect(0, 0, 0, 0);
+                chartCanvas.requestPaint();
+            }
             onExited: root.clearPointing()
         }
 
@@ -565,8 +727,18 @@ Item {
         refreshPointing();
     }
     onChartTypeChanged: {
+        if (chartType === "Pie") {
+            cropMode = false;
+        }
         chartCanvas.requestPaint();
         refreshPointing();
+    }
+    onCropModeChanged: {
+        cropSelecting = false;
+        if (!cropMode) {
+            selectionBox = Qt.rect(0, 0, 0, 0);
+        }
+        clearPointing();
     }
     onChartColorChanged: chartCanvas.requestPaint()
     onLineStyleChanged: chartCanvas.requestPaint()
