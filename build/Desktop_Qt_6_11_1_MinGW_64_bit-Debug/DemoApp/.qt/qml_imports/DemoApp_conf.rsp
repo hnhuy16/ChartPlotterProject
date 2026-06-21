@@ -1,0 +1,14 @@
+-rootPath
+C:/Huy/ChartPlotterProject/DemoApp
+-cmake-output
+-output-file
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/qml_imports/DemoApp_conf.cmake
+-importPath
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp
+-importPath
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/DemoApp
+-importPath
+C:/Qt/6.11.1/mingw_64/qml
+-qrcFiles
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/rcc/qmake_DemoApp.qrc
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/rcc/DemoApp_raw_qml_0.qrc

@@ -15,15 +15,167 @@ Item {
     property real scaleY: 1
     property real lastPanX: 0
     property real lastPanY: 0
+    property bool pointingVisible: false
+    property real pointingMouseX: 0
+    property real pointingMouseY: 0
+    property real pointingDataX: NaN
+    property real pointingDataY: NaN
+    property real pointingPointX: NaN
+    property real pointingPointY: NaN
+    property real pointingCanvasX: NaN
+    property real pointingCanvasY: NaN
+    readonly property real pointingRadius: 14
+
+    function updatePointing(mouseX, mouseY) {
+        pointingMouseX = mouseX;
+        pointingMouseY = mouseY;
+
+        const plotLeft = chartCanvas.leftPadding;
+        const plotRight = Math.max(plotLeft + 1, chartCanvas.width - chartCanvas.rightPadding);
+        const plotTop = chartCanvas.topPadding;
+        const plotBottom = Math.max(plotTop + 1, chartCanvas.height - chartCanvas.bottomPadding);
+
+        if (mouseX < plotLeft || mouseX > plotRight
+                || mouseY < plotTop || mouseY > plotBottom
+                || root.chartType === "Pie") {
+            pointingVisible = false;
+            chartCanvas.requestPaint();
+            return;
+        }
+
+        const data = root.backend ? root.backend.chartData : (root.chartData || []);
+        let minX = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        for (let i = 0; i < data.length; ++i) {
+            const x = data[i].x;
+            const y = data[i].y;
+            if (!Number.isFinite(x) || !Number.isFinite(y)) {
+                continue;
+            }
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+        }
+
+        if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
+            pointingVisible = false;
+            chartCanvas.requestPaint();
+            return;
+        }
+
+        const isOnlineMode = root.backend && root.backend.onlineMode;
+        if (isOnlineMode) {
+            const viewportMinX = root.backend.minX;
+            const viewportMaxX = root.backend.maxX;
+            if (Number.isFinite(viewportMinX) && Number.isFinite(viewportMaxX)
+                    && viewportMinX !== viewportMaxX) {
+                minX = viewportMinX;
+                maxX = viewportMaxX;
+            }
+        }
+
+        if (minX === maxX) {
+            minX -= 1;
+            maxX += 1;
+        }
+        if (minY === maxY) {
+            minY -= 1;
+            maxY += 1;
+        }
+        if (root.chartType === "Bar") {
+            minY = Math.min(minY, 0);
+            maxY = Math.max(maxY, 0);
+        }
+
+        const plotWidth = plotRight - plotLeft;
+        const plotHeight = plotBottom - plotTop;
+
+        function mapX(value) {
+            const normalized = (value - minX) / (maxX - minX);
+            return plotLeft + root.offsetX + normalized * plotWidth * root.scaleX;
+        }
+
+        function mapY(value) {
+            const normalized = (value - minY) / (maxY - minY);
+            return plotBottom + root.offsetY - normalized * plotHeight * root.scaleY;
+        }
+
+        // Keep the cursor position in data space as well as canvas space.
+        pointingDataX = minX + ((mouseX - plotLeft - root.offsetX)
+                               / (plotWidth * root.scaleX)) * (maxX - minX);
+        pointingDataY = minY + ((plotBottom + root.offsetY - mouseY)
+                               / (plotHeight * root.scaleY)) * (maxY - minY);
+
+        let nearestDistanceSquared = root.pointingRadius * root.pointingRadius;
+        let nearestPoint = null;
+        let nearestCanvasX = NaN;
+        let nearestCanvasY = NaN;
+
+        for (let j = 0; j < data.length; ++j) {
+            const point = data[j];
+            if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+                continue;
+            }
+
+            const canvasX = mapX(point.x);
+            const canvasY = mapY(point.y);
+            if (canvasX < plotLeft || canvasX > plotRight
+                    || canvasY < plotTop || canvasY > plotBottom) {
+                continue;
+            }
+
+            const deltaX = canvasX - mouseX;
+            const deltaY = canvasY - mouseY;
+            const distanceSquared = deltaX * deltaX + deltaY * deltaY;
+            if (distanceSquared <= nearestDistanceSquared) {
+                nearestDistanceSquared = distanceSquared;
+                nearestPoint = point;
+                nearestCanvasX = canvasX;
+                nearestCanvasY = canvasY;
+            }
+        }
+
+        pointingVisible = nearestPoint !== null;
+        if (pointingVisible) {
+            pointingPointX = nearestPoint.x;
+            pointingPointY = nearestPoint.y;
+            pointingCanvasX = nearestCanvasX;
+            pointingCanvasY = nearestCanvasY;
+        }
+        chartCanvas.requestPaint();
+    }
+
+    function clearPointing() {
+        pointingVisible = false;
+        chartCanvas.requestPaint();
+    }
+
+    function refreshPointing() {
+        if (pointerArea.containsMouse) {
+            updatePointing(pointerArea.mouseX, pointerArea.mouseY);
+        } else {
+            clearPointing();
+        }
+    }
+
+    function formatPointingValue(value) {
+        return Number(value).toLocaleString(Qt.locale(), "g", 6);
+    }
 
     function zoomX(factor) {
         scaleX = Math.max(0.1, Math.min(50, scaleX * factor));
         chartCanvas.requestPaint();
+        refreshPointing();
     }
 
     function zoomY(factor) {
         scaleY = Math.max(0.1, Math.min(50, scaleY * factor));
         chartCanvas.requestPaint();
+        refreshPointing();
     }
 
     function resetView() {
@@ -32,6 +184,7 @@ Item {
         scaleX = 1.0;
         scaleY = 1.0;
         chartCanvas.requestPaint();
+        refreshPointing();
     }
 
     Canvas {
@@ -295,9 +448,20 @@ Item {
             }
 
             ctx.restore();
+
+            if (root.pointingVisible) {
+                ctx.beginPath();
+                ctx.arc(root.pointingCanvasX, root.pointingCanvasY, 6, 0, Math.PI * 2);
+                ctx.fillStyle = "#ffffff";
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = selectedChartColor;
+                ctx.stroke();
+            }
         }
 
         MouseArea {
+            id: pointerArea
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
@@ -331,7 +495,7 @@ Item {
                     root.offsetY = wheel.y - plotBottom - dataY * root.scaleY;
                 }
 
-                chartCanvas.requestPaint();
+                root.updatePointing(wheel.x, wheel.y);
                 wheel.accepted = true;
             }
 
@@ -341,19 +505,43 @@ Item {
             }
 
             onPositionChanged: function(mouse) {
-                if (!(mouse.buttons & Qt.LeftButton)) {
-                    return;
+                if (mouse.buttons & Qt.LeftButton) {
+                    const deltaX = mouse.x - root.lastPanX;
+                    const deltaY = mouse.y - root.lastPanY;
+
+                    root.offsetX += deltaX;
+                    root.offsetY += deltaY;
+                    root.lastPanX = mouse.x;
+                    root.lastPanY = mouse.y;
                 }
 
-                const deltaX = mouse.x - root.lastPanX;
-                const deltaY = mouse.y - root.lastPanY;
+                root.updatePointing(mouse.x, mouse.y);
+            }
 
-                root.offsetX += deltaX;
-                root.offsetY += deltaY;
-                root.lastPanX = mouse.x;
-                root.lastPanY = mouse.y;
+            onExited: root.clearPointing()
+        }
 
-                chartCanvas.requestPaint();
+        Rectangle {
+            id: pointingTooltip
+            visible: root.pointingVisible
+            z: 2
+            color: "#e6ffffff"
+            border.color: "#94a3b8"
+            border.width: 1
+            radius: 4
+            width: pointingText.implicitWidth + 16
+            height: pointingText.implicitHeight + 10
+            x: Math.min(chartCanvas.width - width - 4, root.pointingMouseX + 12)
+            y: Math.max(4, Math.min(chartCanvas.height - height - 4,
+                                   root.pointingMouseY - height - 12))
+
+            Text {
+                id: pointingText
+                anchors.centerIn: parent
+                color: "#0f172a"
+                text: qsTr("(X: %1, Y: %2)")
+                    .arg(root.formatPointingValue(root.pointingPointX))
+                    .arg(root.formatPointingValue(root.pointingPointY))
             }
         }
     }
@@ -363,18 +551,32 @@ Item {
 
         function onChartDataChanged() {
             chartCanvas.requestPaint();
+            root.refreshPointing();
         }
 
         function onViewportChanged() {
             chartCanvas.requestPaint();
+            root.refreshPointing();
         }
     }
 
-    onChartDataChanged: chartCanvas.requestPaint()
-    onChartTypeChanged: chartCanvas.requestPaint()
+    onChartDataChanged: {
+        chartCanvas.requestPaint();
+        refreshPointing();
+    }
+    onChartTypeChanged: {
+        chartCanvas.requestPaint();
+        refreshPointing();
+    }
     onChartColorChanged: chartCanvas.requestPaint()
     onLineStyleChanged: chartCanvas.requestPaint()
-    onWidthChanged: chartCanvas.requestPaint()
-    onHeightChanged: chartCanvas.requestPaint()
+    onWidthChanged: {
+        chartCanvas.requestPaint();
+        refreshPointing();
+    }
+    onHeightChanged: {
+        chartCanvas.requestPaint();
+        refreshPointing();
+    }
     Component.onCompleted: chartCanvas.requestPaint()
 }

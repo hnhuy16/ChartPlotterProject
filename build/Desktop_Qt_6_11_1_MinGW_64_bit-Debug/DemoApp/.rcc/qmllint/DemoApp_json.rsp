@@ -1,0 +1,17 @@
+--bare
+-I
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp
+-I
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/DemoApp
+-I
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp
+-I
+C:/Qt/6.11.1/mingw_64/qml
+--resource
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/rcc/qmake_DemoApp.qrc
+--resource
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/rcc/DemoApp_raw_qml_0.qrc
+C:/Huy/ChartPlotterProject/DemoApp/main.qml
+C:/Huy/ChartPlotterProject/DemoApp/ChartView.qml
+--json
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp_qmllint.json

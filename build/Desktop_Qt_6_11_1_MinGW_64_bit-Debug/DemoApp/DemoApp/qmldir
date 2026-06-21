@@ -1,0 +1,6 @@
+module DemoApp
+typeinfo DemoApp.qmltypes
+prefer :/qt/qml/DemoApp/
+ChartView 1.0 ChartView.qml
+depends QtQuick
+

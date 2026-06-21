@@ -1,0 +1,6 @@
+--resource
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/rcc/qmake_DemoApp.qrc
+--resource
+C:/Huy/ChartPlotterProject/build/Desktop_Qt_6_11_1_MinGW_64_bit-Debug/DemoApp/.qt/rcc/DemoApp_raw_qml_0.qrc
+/qt/qml/DemoApp/main.qml
+/qt/qml/DemoApp/ChartView.qml
