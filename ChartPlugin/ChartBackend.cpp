@@ -195,8 +195,12 @@ void ChartBackend::setViewport(double minX, double maxX, double minY, double max
         return;
     }
 
-    if (qFuzzyCompare(m_minX, minX) && qFuzzyCompare(m_maxX, maxX)
-        && qFuzzyCompare(m_minY, minY) && qFuzzyCompare(m_maxY, maxY)) {
+    const bool minXHasChanged = !qFuzzyCompare(m_minX, minX);
+    const bool maxXHasChanged = !qFuzzyCompare(m_maxX, maxX);
+    const bool minYHasChanged = !qFuzzyCompare(m_minY, minY);
+    const bool maxYHasChanged = !qFuzzyCompare(m_maxY, maxY);
+
+    if (!minXHasChanged && !maxXHasChanged && !minYHasChanged && !maxYHasChanged) {
         return;
     }
 
@@ -204,6 +208,50 @@ void ChartBackend::setViewport(double minX, double maxX, double minY, double max
     m_maxX = maxX;
     m_minY = minY;
     m_maxY = maxY;
+
+    if (minXHasChanged) {
+        emit minXChanged();
+    }
+    if (maxXHasChanged) {
+        emit maxXChanged();
+    }
+    if (minYHasChanged) {
+        emit minYChanged();
+    }
+    if (maxYHasChanged) {
+        emit maxYChanged();
+    }
+
+    emit viewportChanged();
+}
+
+void ChartBackend::resetBounds()
+{
+    if (m_chartData.isEmpty()) {
+        return;
+    }
+
+    double minX = m_chartData.first().x();
+    double maxX = minX;
+    double minY = m_chartData.first().y();
+    double maxY = minY;
+
+    for (const QPointF &point : m_chartData) {
+        minX = qMin(minX, point.x());
+        maxX = qMax(maxX, point.x());
+        minY = qMin(minY, point.y());
+        maxY = qMax(maxY, point.y());
+    }
+
+    m_minX = minX;
+    m_maxX = maxX;
+    m_minY = minY;
+    m_maxY = maxY;
+
+    emit minXChanged();
+    emit maxXChanged();
+    emit minYChanged();
+    emit maxYChanged();
     emit viewportChanged();
 }
 

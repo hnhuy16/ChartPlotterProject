@@ -18,10 +18,10 @@ class ChartBackend : public QObject
     QML_ELEMENT
     Q_PROPERTY(QList<QPointF> chartData READ chartData NOTIFY chartDataChanged)
     Q_PROPERTY(bool onlineMode READ onlineMode NOTIFY onlineModeChanged)
-    Q_PROPERTY(double minX READ minX WRITE setMinX NOTIFY viewportChanged)
-    Q_PROPERTY(double maxX READ maxX WRITE setMaxX NOTIFY viewportChanged)
-    Q_PROPERTY(double minY READ minY WRITE setMinY NOTIFY viewportChanged)
-    Q_PROPERTY(double maxY READ maxY WRITE setMaxY NOTIFY viewportChanged)
+    Q_PROPERTY(double minX READ minX WRITE setMinX NOTIFY minXChanged)
+    Q_PROPERTY(double maxX READ maxX WRITE setMaxX NOTIFY maxXChanged)
+    Q_PROPERTY(double minY READ minY WRITE setMinY NOTIFY minYChanged)
+    Q_PROPERTY(double maxY READ maxY WRITE setMaxY NOTIFY maxYChanged)
 
 public:
     explicit ChartBackend(QObject *parent = nullptr);
@@ -43,10 +43,15 @@ public:
     Q_INVOKABLE void generateDummyData();
     Q_INVOKABLE void clearData();
     Q_INVOKABLE void setViewport(double minX, double maxX, double minY, double maxY);
+    Q_INVOKABLE void resetBounds();
 
 signals:
     void chartDataChanged();
     void onlineModeChanged();
+    void minXChanged();
+    void maxXChanged();
+    void minYChanged();
+    void maxYChanged();
     void viewportChanged();
 
 private slots:

@@ -199,6 +199,9 @@ Item {
         offsetY = 0;
         scaleX = 1.0;
         scaleY = 1.0;
+        if (backend) {
+            backend.resetBounds();
+        }
         chartCanvas.requestPaint();
         refreshPointing();
     }
