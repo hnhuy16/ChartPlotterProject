@@ -1,4 +1,5 @@
 import QtQuick
+import ChartPlotter
 
 Item {
     id: root
@@ -30,6 +31,37 @@ Item {
     property real pointingCanvasX: NaN
     property real pointingCanvasY: NaN
     readonly property real pointingRadius: 14
+    readonly property var dataBounds: {
+        const data = root.backend ? root.backend.chartData : (root.chartData || []);
+        let minX = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        for (let i = 0; i < data.length; ++i) {
+            const point = data[i];
+            if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+                continue;
+            }
+            minX = Math.min(minX, point.x);
+            maxX = Math.max(maxX, point.x);
+            minY = Math.min(minY, point.y);
+            maxY = Math.max(maxY, point.y);
+        }
+
+        if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
+            return { minX: 0, maxX: 1, minY: 0, maxY: 1 };
+        }
+        if (minX === maxX) {
+            minX -= 1;
+            maxX += 1;
+        }
+        if (minY === maxY) {
+            minY -= 1;
+            maxY += 1;
+        }
+        return { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
+    }
 
     function updatePointing(mouseX, mouseY) {
         if (cropMode) {
@@ -481,59 +513,6 @@ Item {
                         startAngle = endAngle;
                     }
                 }
-            } else {
-                if (root.lineStyle === "Dashed") {
-                    ctx.setLineDash([10, 5]);
-                } else if (root.lineStyle === "Dotted") {
-                    ctx.setLineDash([2, 4]);
-                } else {
-                    ctx.setLineDash([]);
-                }
-
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-
-                let started = false;
-                for (let k = 0; k < data.length; ++k) {
-                    const item = data[k];
-                    const xValue = item.x;
-                    const yValue = item.y;
-
-                    if (!Number.isFinite(xValue) || !Number.isFinite(yValue)) {
-                        continue;
-                    }
-
-                    const canvasX = mapX(xValue);
-                    const canvasY = mapY(yValue);
-
-                    if (started) {
-                        ctx.lineTo(canvasX, canvasY);
-                    } else {
-                        ctx.moveTo(canvasX, canvasY);
-                        started = true;
-                    }
-                }
-
-                if (started) {
-                    ctx.stroke();
-                }
-
-                ctx.setLineDash([]);
-                ctx.fillStyle = selectedChartColor;
-                const pointRadius = data.length > 500 ? 1.5 : 2.5;
-                for (let l = 0; l < data.length; ++l) {
-                    const dot = data[l];
-                    const dotX = dot.x;
-                    const dotY = dot.y;
-
-                    if (!Number.isFinite(dotX) || !Number.isFinite(dotY)) {
-                        continue;
-                    }
-
-                    ctx.beginPath();
-                    ctx.arc(mapX(dotX), mapY(dotY), pointRadius, 0, Math.PI * 2);
-                    ctx.fill();
-                }
             }
 
             ctx.restore();
@@ -557,6 +536,30 @@ Item {
                 ctx.strokeRect(root.selectionBox.x + 0.5, root.selectionBox.y + 0.5,
                                Math.max(0, root.selectionBox.width - 1),
                                Math.max(0, root.selectionBox.height - 1));
+            }
+        }
+
+        Item {
+            id: sdfPlotArea
+            x: chartCanvas.leftPadding
+            y: chartCanvas.topPadding
+            width: Math.max(1, chartCanvas.width - chartCanvas.leftPadding - chartCanvas.rightPadding)
+            height: Math.max(1, chartCanvas.height - chartCanvas.topPadding - chartCanvas.bottomPadding)
+            clip: true
+            visible: root.chartType === "Line"
+
+            SdfChartItem {
+                x: root.offsetX
+                y: sdfPlotArea.height + root.offsetY - height
+                width: sdfPlotArea.width * root.scaleX
+                height: sdfPlotArea.height * root.scaleY
+                chartData: root.backend ? root.backend.chartData : root.chartData
+                lineColor: root.chartColor
+                lineWidth: 2
+                minX: root.backend ? root.backend.minX : root.dataBounds.minX
+                maxX: root.backend ? root.backend.maxX : root.dataBounds.maxX
+                minY: root.backend ? root.backend.minY : root.dataBounds.minY
+                maxY: root.backend ? root.backend.maxY : root.dataBounds.maxY
             }
         }
 

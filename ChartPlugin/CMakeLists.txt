@@ -16,9 +16,23 @@ qt_add_qml_module(ChartPlugin
         core/LttbAlgorithm.h
         core/OfflineDataProcessor.h
         core/OnlineDataProcessor.h
+        core/SdfChartItem.h
         core/LttbAlgorithm.cpp
         core/OfflineDataProcessor.cpp
         core/OnlineDataProcessor.cpp
+        core/SdfChartItem.cpp
+)
+
+find_package(Qt6 REQUIRED COMPONENTS ShaderTools)
+
+qt_add_shaders(ChartPlugin "chartplotter_shaders"
+    BATCHABLE
+    PRECOMPILE
+    PREFIX
+        "/ChartPlotter"
+    FILES
+        shaders/line.vert
+        shaders/line.frag
 )
 
 # 3. Khai báo các thư viện Qt mà Plugin sử dụng
@@ -32,4 +46,5 @@ target_link_libraries(ChartPlugin PRIVATE
 # 4. Cấu hình đường dẫn include
 target_include_directories(ChartPlugin PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
 )
