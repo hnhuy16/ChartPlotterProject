@@ -42,6 +42,7 @@ public:
     Q_INVOKABLE void setOnlineMode();
     Q_INVOKABLE void generateDummyData();
     Q_INVOKABLE void clearData();
+    Q_INVOKABLE bool loadFromFile(const QString &fileUrl);
     Q_INVOKABLE void setViewport(double minX, double maxX, double minY, double maxY);
     Q_INVOKABLE void resetBounds();
 

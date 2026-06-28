@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
+import QtCore
 
 import ChartPlotter
 
@@ -13,6 +15,14 @@ Window {
 
     ChartBackend {
         id: chartBackend
+    }
+
+    FileDialog {
+        id: fileDialog
+        title: qsTr("Select Data File")
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        nameFilters: [qsTr("Data files (*.csv *.txt)"), qsTr("All files (*)")]
+        onAccepted: chartBackend.loadFromFile(fileDialog.selectedFile)
     }
 
     function setChartColor(color) {
@@ -242,6 +252,11 @@ Window {
             Button {
                 text: qsTr("Generate Data")
                 onClicked: chartBackend.generateDummyData()
+            }
+
+            Button {
+                text: qsTr("Open File")
+                onClicked: fileDialog.open()
             }
 
             Button {

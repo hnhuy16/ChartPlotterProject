@@ -3,6 +3,10 @@
 #include "core/OfflineDataProcessor.h"
 #include "core/OnlineDataProcessor.h"
 
+#include <QFile>
+#include <QRegularExpression>
+#include <QTextStream>
+#include <QUrl>
 #include <QtMath>
 
 namespace {
@@ -125,6 +129,68 @@ void ChartBackend::clearData()
     emit chartDataChanged();
 }
 
+bool ChartBackend::loadFromFile(const QString &fileUrl)
+{
+    const QString localPath = QUrl(fileUrl).toLocalFile();
+    QFile file(localPath);
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return false;
+    }
+
+    QTextStream stream(&file);
+    std::vector<QPointF> parsedData;
+    double nextX = 0.0;
+
+    while (!stream.atEnd()) {
+        const QString line = stream.readLine().trimmed();
+        if (line.isEmpty()) {
+            continue;
+        }
+
+        const QStringList values = line.split(QRegularExpression(QStringLiteral("\\s*,\\s*|\\s+")),
+                                             Qt::SkipEmptyParts);
+        bool xIsValid = false;
+        bool yIsValid = false;
+        double x = nextX;
+        double y = 0.0;
+
+        if (values.size() >= 2) {
+            x = values.at(0).toDouble(&xIsValid);
+            y = values.at(1).toDouble(&yIsValid);
+        } else if (values.size() == 1) {
+            y = values.at(0).toDouble(&yIsValid);
+            xIsValid = true;
+        }
+
+        if (!xIsValid || !yIsValid) {
+            continue;
+        }
+
+        parsedData.emplace_back(x, y);
+        nextX = x + 1.0;
+    }
+
+    if (parsedData.empty()) {
+        return false;
+    }
+
+    m_realtimeTimer.stop();
+    setOnlineModeState(false);
+    m_processor = std::make_unique<OfflineDataProcessor>();
+    m_rawData = std::move(parsedData);
+    m_chartData = QList<QPointF>(m_rawData.begin(), m_rawData.end());
+
+    if (m_processor) {
+        m_processor->loadData(m_rawData);
+    }
+
+    resetBounds();
+    emit chartDataChanged();
+
+    return true;
+}
+
 void ChartBackend::appendRealtimePoint()
 {
     auto *onlineProcessor = dynamic_cast<OnlineDataProcessor *>(m_processor.get());
@@ -142,9 +208,54 @@ void ChartBackend::appendRealtimePoint()
     const double viewportWidth = m_maxX - m_minX;
     const double maxX = x;
     const double minX = maxX - viewportWidth;
-    setXViewport(minX, maxX);
+    const bool minXHasChanged = !qFuzzyCompare(m_minX, minX);
+    const bool maxXHasChanged = !qFuzzyCompare(m_maxX, maxX);
 
-    updateChartDataFromProcessor();
+    m_minX = minX;
+    m_maxX = maxX;
+
+    if (minXHasChanged) {
+        emit minXChanged();
+    }
+    if (maxXHasChanged) {
+        emit maxXChanged();
+    }
+
+    const std::vector<QPointF> processedData = onlineProcessor->getProcessedData(m_targetPixelWidth);
+    m_chartData = QList<QPointF>(processedData.begin(), processedData.end());
+
+    if (!m_chartData.isEmpty()) {
+        bool hasVisiblePoint = false;
+        double currentMinY = 0.0;
+        double currentMaxY = 0.0;
+
+        for (const QPointF &point : m_chartData) {
+            if (point.x() < m_minX || point.x() > m_maxX) {
+                continue;
+            }
+
+            if (!hasVisiblePoint) {
+                currentMinY = point.y();
+                currentMaxY = point.y();
+                hasVisiblePoint = true;
+                continue;
+            }
+
+            currentMinY = qMin(currentMinY, point.y());
+            currentMaxY = qMax(currentMaxY, point.y());
+        }
+
+        if (hasVisiblePoint) {
+            m_minY = currentMinY;
+            m_maxY = currentMaxY;
+
+            emit minYChanged();
+            emit maxYChanged();
+        }
+    }
+
+    emit viewportChanged();
+    emit chartDataChanged();
 }
 
 void ChartBackend::setProcessor(std::unique_ptr<IDataProcessor> processor)
